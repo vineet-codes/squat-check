@@ -47,7 +47,7 @@ async function setupCamera() {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
             video: {
-                facingMode: 'environment', // Use back camera if available
+                facingMode: isMobile ? 'user' : 'environment', // Use back camera if available
                 width: { ideal: window.innerWidth },
                 height: { ideal: window.innerHeight }
             },
