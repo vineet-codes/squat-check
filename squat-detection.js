@@ -44,18 +44,27 @@ function playSound(duration = 1000) {
 async function setupCamera() {
     const video = document.getElementById('video');
     
-    // Reset any existing permissions
-    try {
-        await navigator.mediaDevices.getUserMedia({ video: false });
-    } catch (e) {
-        // Ignore errors from resetting
-    }
+    // Helper function to clear permissions
+    const clearCameraPermissions = async () => {
+        try {
+            // Try to revoke existing permissions
+            if (navigator.permissions && navigator.permissions.revoke) {
+                await navigator.permissions.revoke({ name: 'camera' }).catch(() => {});
+            }
+            
+            // Force stop any existing tracks
+            const tracks = await navigator.mediaDevices.getUserMedia({ video: true });
+            tracks.getTracks().forEach(track => track.stop());
+        } catch (e) {
+            // Ignore errors from clearing permissions
+        }
+    };
 
-    // First try mobile-friendly constraints
     try {
+        // First try mobile-friendly constraints
         const stream = await navigator.mediaDevices.getUserMedia({
             video: {
-                facingMode: isMobile ? 'user' : 'environment', // Use back camera if available
+                facingMode: isMobile ? 'user' : 'environment',
                 width: { ideal: window.innerWidth },
                 height: { ideal: window.innerHeight }
             },
@@ -72,12 +81,35 @@ async function setupCamera() {
             });
             video.srcObject = stream;
         } catch (error) {
-            // If permission denied, clear any stored permissions to allow re-prompting
-            if (error.name === 'NotAllowedError') {
-                await navigator.permissions.revoke({ name: 'camera' }).catch(() => {});
-                throw new Error('Camera permission denied. Please refresh and allow camera access.');
-            }
-            throw error;
+            // If permission denied or any other error
+            await clearCameraPermissions();
+            
+            // Show user-friendly message
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = "Camera access needed. Please refresh the page and allow camera access.";
+            messageEl.style.color = '#FF9800';
+            messageEl.style.fontSize = '24px';
+            
+            // Add refresh button
+            const refreshButton = document.createElement('button');
+            refreshButton.textContent = "Refresh Page";
+            refreshButton.style.cssText = `
+                display: block;
+                margin: 20px auto;
+                padding: 12px 24px;
+                background: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 18px;
+                cursor: pointer;
+                font-family: 'Poppins', sans-serif;
+            `;
+            refreshButton.onclick = () => window.location.reload();
+            messageEl.appendChild(document.createElement('br'));
+            messageEl.appendChild(refreshButton);
+            
+            throw new Error('Camera access needed');
         }
     }
 
