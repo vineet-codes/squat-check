@@ -47,16 +47,47 @@ async function setupCamera() {
     // Helper function to clear permissions
     const clearCameraPermissions = async () => {
         try {
-            // Try to revoke existing permissions
-            if (navigator.permissions && navigator.permissions.revoke) {
-                await navigator.permissions.revoke({ name: 'camera' }).catch(() => {});
-            }
+            // Stop all active media tracks
+            const allTracks = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = allTracks.filter(device => device.kind === 'videoinput');
             
-            // Force stop any existing tracks
-            const tracks = await navigator.mediaDevices.getUserMedia({ video: true });
-            tracks.getTracks().forEach(track => track.stop());
+            // Try to get and stop streams from all video devices
+            for (const device of videoDevices) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { deviceId: { exact: device.deviceId } }
+                    });
+                    stream.getTracks().forEach(track => track.stop());
+                } catch (e) {
+                    // Continue to next device if one fails
+                }
+            }
+    
+            // Clear any existing streams
+            if (video.srcObject) {
+                const tracks = video.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+                video.srcObject = null;
+            }
+    
+            // Force permission prompt on mobile Chrome
+            try {
+                const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                tempStream.getTracks().forEach(track => track.stop());
+            } catch (e) {
+                // Ignore errors
+            }
+    
+            // Try to revoke permissions if supported
+            if (navigator.permissions && navigator.permissions.revoke) {
+                try {
+                    await navigator.permissions.revoke({ name: 'camera' });
+                } catch (e) {
+                    // Some browsers don't support revoke
+                }
+            }
         } catch (e) {
-            // Ignore errors from clearing permissions
+            console.log('Error clearing permissions:', e);
         }
     };
 
@@ -109,7 +140,11 @@ async function setupCamera() {
                 touch-action: manipulation;
                 user-select: none;
             `;
-            refreshButton.addEventListener('click', () => window.location.reload());
+            refreshButton.addEventListener('click', async () => {
+                await clearCameraPermissions();
+                // Force reload without cache
+                window.location.href = window.location.href + '?reload=' + Date.now();
+            });
             messageEl.appendChild(document.createElement('br'));
             messageEl.appendChild(refreshButton);
             
