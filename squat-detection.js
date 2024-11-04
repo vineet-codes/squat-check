@@ -104,8 +104,12 @@ async function setupCamera() {
                 font-size: 18px;
                 cursor: pointer;
                 font-family: 'Poppins', sans-serif;
+                pointer-events: auto;
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
+                user-select: none;
             `;
-            refreshButton.onclick = () => window.location.reload();
+            refreshButton.addEventListener('click', () => window.location.reload());
             messageEl.appendChild(document.createElement('br'));
             messageEl.appendChild(refreshButton);
             
