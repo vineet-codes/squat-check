@@ -41,115 +41,196 @@ function playSound(duration = 1000) {
         }
     }
 }
+// async function setupCamera() {
+//     const video = document.getElementById('video');
+    
+//     // Helper function to clear permissions
+//     const clearCameraPermissions = async () => {
+//         try {
+//             // Stop all active media tracks
+//             const allTracks = await navigator.mediaDevices.enumerateDevices();
+//             const videoDevices = allTracks.filter(device => device.kind === 'videoinput');
+            
+//             // Try to get and stop streams from all video devices
+//             for (const device of videoDevices) {
+//                 try {
+//                     const stream = await navigator.mediaDevices.getUserMedia({
+//                         video: { deviceId: { exact: device.deviceId } }
+//                     });
+//                     stream.getTracks().forEach(track => track.stop());
+//                 } catch (e) {
+//                     // Continue to next device if one fails
+//                 }
+//             }
+    
+//             // Clear any existing streams
+//             if (video.srcObject) {
+//                 const tracks = video.srcObject.getTracks();
+//                 tracks.forEach(track => track.stop());
+//                 video.srcObject = null;
+//             }
+    
+//             // Force permission prompt on mobile Chrome
+//             try {
+//                 const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
+//                 tempStream.getTracks().forEach(track => track.stop());
+//             } catch (e) {
+//                 // Ignore errors
+//             }
+    
+//             // Try to revoke permissions if supported
+//             if (navigator.permissions && navigator.permissions.revoke) {
+//                 try {
+//                     await navigator.permissions.revoke({ name: 'camera' });
+//                 } catch (e) {
+//                     // Some browsers don't support revoke
+//                 }
+//             }
+//         } catch (e) {
+//             console.log('Error clearing permissions:', e);
+//         }
+//     };
+
+//     try {
+//         // First try mobile-friendly constraints
+//         const stream = await navigator.mediaDevices.getUserMedia({
+//             video: {
+//                 facingMode: isMobile ? 'user' : 'environment',
+//                 width: { ideal: window.innerWidth },
+//                 height: { ideal: window.innerHeight }
+//             },
+//         });
+//         video.srcObject = stream;
+//     } catch (e) {
+//         try {
+//             // Fallback for desktop
+//             const stream = await navigator.mediaDevices.getUserMedia({
+//                 video: {
+//                     width: { ideal: 1920 },
+//                     height: { ideal: 1080 }
+//                 },
+//             });
+//             video.srcObject = stream;
+//         } catch (error) {
+//             // If permission denied or any other error
+//             await clearCameraPermissions();
+            
+//             // Show user-friendly message
+//             const messageEl = document.getElementById('message');
+//             messageEl.textContent = "Camera access needed. Please refresh the page and allow camera access.";
+//             messageEl.style.color = '#FF9800';
+//             messageEl.style.fontSize = '24px';
+            
+//             // Add refresh button
+//             const refreshButton = document.createElement('button');
+//             refreshButton.textContent = "Refresh Page";
+//             refreshButton.style.cssText = `
+//                 display: block;
+//                 margin: 20px auto;
+//                 padding: 12px 24px;
+//                 background: #4CAF50;
+//                 color: white;
+//                 border: none;
+//                 border-radius: 8px;
+//                 font-size: 18px;
+//                 cursor: pointer;
+//                 font-family: 'Poppins', sans-serif;
+//                 pointer-events: auto;
+//                 -webkit-tap-highlight-color: transparent;
+//                 touch-action: manipulation;
+//                 user-select: none;
+//             `;
+//             refreshButton.addEventListener('click', async () => {
+//                 await clearCameraPermissions();
+//                 // Force reload without cache
+//                 window.location.href = window.location.href + '?reload=' + Date.now();
+//             });
+//             messageEl.appendChild(document.createElement('br'));
+//             messageEl.appendChild(refreshButton);
+            
+//             throw new Error('Camera access needed');
+//         }
+//     }
+
+//     return new Promise((resolve) => {
+//         video.onloadedmetadata = () => {
+//             resolve(video);
+//         };
+//     });
+// }
+
 async function setupCamera() {
     const video = document.getElementById('video');
-    
-    // Helper function to clear permissions
-    const clearCameraPermissions = async () => {
-        try {
-            // Stop all active media tracks
-            const allTracks = await navigator.mediaDevices.enumerateDevices();
-            const videoDevices = allTracks.filter(device => device.kind === 'videoinput');
-            
-            // Try to get and stop streams from all video devices
-            for (const device of videoDevices) {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({
-                        video: { deviceId: { exact: device.deviceId } }
-                    });
-                    stream.getTracks().forEach(track => track.stop());
-                } catch (e) {
-                    // Continue to next device if one fails
-                }
-            }
-    
-            // Clear any existing streams
-            if (video.srcObject) {
-                const tracks = video.srcObject.getTracks();
-                tracks.forEach(track => track.stop());
-                video.srcObject = null;
-            }
-    
-            // Force permission prompt on mobile Chrome
-            try {
-                const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                tempStream.getTracks().forEach(track => track.stop());
-            } catch (e) {
-                // Ignore errors
-            }
-    
-            // Try to revoke permissions if supported
-            if (navigator.permissions && navigator.permissions.revoke) {
-                try {
-                    await navigator.permissions.revoke({ name: 'camera' });
-                } catch (e) {
-                    // Some browsers don't support revoke
-                }
-            }
-        } catch (e) {
-            console.log('Error clearing permissions:', e);
-        }
+    const messageEl = document.getElementById('message');
+
+    // Function to handle permission denial gracefully
+    const handlePermissionDenied = () => {
+        messageEl.textContent = "Camera access is required. Please refresh and allow camera access in your browser settings.";
+        messageEl.style.color = '#FF9800';
+        messageEl.style.fontSize = '24px';
+
+        // Add refresh button for user convenience
+        const refreshButton = document.createElement('button');
+        refreshButton.textContent = "Refresh Page";
+        refreshButton.style.cssText = `
+            display: block;
+            margin: 20px auto;
+            padding: 12px 24px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            pointer-events: auto;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            user-select: none;
+        `;
+        refreshButton.addEventListener('click', () => {
+            // Force reload to attempt permission re-prompt
+            window.location.reload();
+        });
+        
+        // Clear existing message and add refresh button
+        messageEl.innerHTML = "";
+        messageEl.appendChild(document.createTextNode("Camera access is required. Please refresh and allow camera access in your browser settings."));
+        messageEl.appendChild(document.createElement('br'));
+        messageEl.appendChild(refreshButton);
     };
 
     try {
-        // First try mobile-friendly constraints
+        // First, check if Permissions API is supported and camera access status
+        if (navigator.permissions) {
+            const permissionStatus = await navigator.permissions.query({ name: 'camera' });
+
+            if (permissionStatus.state === 'denied') {
+                handlePermissionDenied();
+                throw new Error('Camera access denied by user');
+            }
+        }
+
+        // Request camera access
         const stream = await navigator.mediaDevices.getUserMedia({
             video: {
-                facingMode: isMobile ? 'user' : 'environment',
+                facingMode: 'user',
                 width: { ideal: window.innerWidth },
                 height: { ideal: window.innerHeight }
             },
         });
         video.srcObject = stream;
-    } catch (e) {
-        try {
-            // Fallback for desktop
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 }
-                },
-            });
-            video.srcObject = stream;
-        } catch (error) {
-            // If permission denied or any other error
-            await clearCameraPermissions();
-            
-            // Show user-friendly message
-            const messageEl = document.getElementById('message');
-            messageEl.textContent = "Camera access needed. Please refresh the page and allow camera access.";
+    } catch (error) {
+        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+            // User denied permission; show instructions
+            handlePermissionDenied();
+        } else {
+            console.error('Error accessing camera:', error);
+            messageEl.textContent = "An error occurred while accessing the camera. Please check your browser settings or try another browser.";
             messageEl.style.color = '#FF9800';
             messageEl.style.fontSize = '24px';
-            
-            // Add refresh button
-            const refreshButton = document.createElement('button');
-            refreshButton.textContent = "Refresh Page";
-            refreshButton.style.cssText = `
-                display: block;
-                margin: 20px auto;
-                padding: 12px 24px;
-                background: #4CAF50;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font-size: 18px;
-                cursor: pointer;
-                font-family: 'Poppins', sans-serif;
-                pointer-events: auto;
-                -webkit-tap-highlight-color: transparent;
-                touch-action: manipulation;
-                user-select: none;
-            `;
-            refreshButton.addEventListener('click', async () => {
-                await clearCameraPermissions();
-                // Force reload without cache
-                window.location.href = window.location.href + '?reload=' + Date.now();
-            });
-            messageEl.appendChild(document.createElement('br'));
-            messageEl.appendChild(refreshButton);
-            
-            throw new Error('Camera access needed');
         }
+        throw error; // Rethrow to stop further processing
     }
 
     return new Promise((resolve) => {
