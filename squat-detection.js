@@ -43,6 +43,14 @@ function playSound(duration = 1000) {
 }
 async function setupCamera() {
     const video = document.getElementById('video');
+    
+    // Reset any existing permissions
+    try {
+        await navigator.mediaDevices.getUserMedia({ video: false });
+    } catch (e) {
+        // Ignore errors from resetting
+    }
+
     // First try mobile-friendly constraints
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -54,14 +62,23 @@ async function setupCamera() {
         });
         video.srcObject = stream;
     } catch (e) {
-        // Fallback for desktop
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                width: { ideal: 1920 },
-                height: { ideal: 1080 }
-            },
-        });
-        video.srcObject = stream;
+        try {
+            // Fallback for desktop
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                },
+            });
+            video.srcObject = stream;
+        } catch (error) {
+            // If permission denied, clear any stored permissions to allow re-prompting
+            if (error.name === 'NotAllowedError') {
+                await navigator.permissions.revoke({ name: 'camera' }).catch(() => {});
+                throw new Error('Camera permission denied. Please refresh and allow camera access.');
+            }
+            throw error;
+        }
     }
 
     return new Promise((resolve) => {

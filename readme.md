@@ -85,3 +85,9 @@ stateDiagram-v2
 - Requires stability at bottom position
 - Needs stable standing position to count rep
 - Minimum depth must be achieved (15% of leg length)
+
+# Thoughts while building this
+
+1. The Age of Personal Software: AI enables the creation of highly personalized applications where the Total Addressable Market (TAM) can be as focused as a single user, signaling a shift towards individually tailored software experiences.
+
+2. Infinite Variation in Personalization: AI-driven personalization across domains—such as tutors, assistants, and teachers—allows for unique, adaptable user experiences, tailored to specific tastes and preferences, leading to limitless interaction possibilities.
